@@ -7,7 +7,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_HARDENED_RUNTIME: NO
 targets:
   SyphonHue:
     type: application
