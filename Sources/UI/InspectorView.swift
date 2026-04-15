@@ -180,13 +180,13 @@ private struct PointRow: View {
 
 /// Column widths kept in one place so header and rows stay aligned.
 private enum AssignmentColumns {
-    static let on: CGFloat = 30
-    static let source: CGFloat = 90
-    static let cc: CGFloat = 64
-    static let channel: CGFloat = 52
-    static let value: CGFloat = 40
-    static let learn: CGFloat = 40
-    static let spacing: CGFloat = 8
+    static let on: CGFloat = 26
+    static let source: CGFloat = 76
+    static let cc: CGFloat = 54
+    static let channel: CGFloat = 46
+    static let value: CGFloat = 34
+    static let learn: CGFloat = 36
+    static let spacing: CGFloat = 6
 }
 
 private struct AssignmentColumnHeader: View {
@@ -228,10 +228,10 @@ private struct AssignmentRow: View {
             .pickerStyle(.menu)
             .frame(width: AssignmentColumns.source, alignment: .leading)
 
-            NumberField(value: $assignment.cc, range: 0...127, width: 28)
+            NumberField(value: $assignment.cc, range: 0...127, width: 24)
                 .frame(width: AssignmentColumns.cc, alignment: .leading)
 
-            NumberField(value: $assignment.channel, range: 1...16, width: 22)
+            NumberField(value: $assignment.channel, range: 1...16, width: 18)
                 .frame(width: AssignmentColumns.channel, alignment: .leading)
 
             Spacer(minLength: 0)
