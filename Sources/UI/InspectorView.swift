@@ -42,7 +42,7 @@ struct InspectorView: View {
                             midiValues: viewModel.lastMIDIValues,
                             duplicateCCs: duplicateCCs,
                             onRemove: { pointStore.remove(id: pair.element.id) },
-                            onSweep: { a in viewModel.sweep(channel: a.channel, cc: a.cc) }
+                            onNudge: { a in viewModel.nudge(assignment: a) }
                         )
                     }
                 }
@@ -88,7 +88,7 @@ private struct PointRow: View {
     var midiValues: [UUID: UInt8]
     var duplicateCCs: Set<CCKey>
     var onRemove: () -> Void
-    var onSweep: (CCAssignment) -> Void
+    var onNudge: (CCAssignment) -> Void
 
     @State private var expanded: Bool = true
 
@@ -129,7 +129,7 @@ private struct PointRow: View {
                                 assignment: $a,
                                 currentMIDI: midiValues[a.id],
                                 isDuplicate: duplicateCCs.contains(CCKey(channel: a.channel, cc: a.cc)),
-                                onSweep: { onSweep(a) }
+                                onNudge: { onNudge(a) }
                             )
                             if a.id != point.assignments.last?.id {
                                 Divider()
@@ -173,7 +173,7 @@ private struct AssignmentRow: View {
     @Binding var assignment: CCAssignment
     var currentMIDI: UInt8?
     var isDuplicate: Bool
-    var onSweep: () -> Void
+    var onNudge: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -209,12 +209,12 @@ private struct AssignmentRow: View {
                 .frame(width: 30, alignment: .trailing)
                 .help("Current CC value being sent")
 
-            Button(action: onSweep) {
-                Image(systemName: "waveform")
+            Button(action: onNudge) {
+                Image(systemName: "bolt.fill")
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help("Sweep 0→127→0 to trigger MIDI-learn in the target app")
+            .help("Nudge this CC (±1) to trigger MIDI-learn in the target app — works while paused")
         }
         .font(.caption)
     }

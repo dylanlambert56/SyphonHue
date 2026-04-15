@@ -21,7 +21,6 @@ final class AppViewModel: ObservableObject {
     private var smoothed: [UUID: SampledColor] = [:]
     private var cancellables = Set<AnyCancellable>()
     private var pendingSyphonTag: String?
-    private var sweepTimer: DispatchSourceTimer?
 
     init() {
         loadConfig()
@@ -129,7 +128,7 @@ final class AppViewModel: ObservableObject {
         guard samples.count == points.count else { return }
 
         var nextSampled: [UUID: SampledColor] = [:]
-        var nextMIDI: [UUID: UInt8] = lastMIDIValues
+        var nextMIDI: [UUID: UInt8] = isFrozen ? lastMIDIValues : [:]
         for (i, point) in points.enumerated() {
             let raw = samples[i]
             let alpha = point.smoothing
@@ -157,8 +156,8 @@ final class AppViewModel: ObservableObject {
                 case .blue: value01 = blended.b
                 }
                 let midiVal = ColorMapper.toMIDI(value01)
-                nextMIDI[a.id] = midiVal
                 if !isFrozen {
+                    nextMIDI[a.id] = midiVal
                     lastSent[a.id] = midiVal
                     midi.sendCC(channel: a.channel, cc: a.cc, value: Int(midiVal))
                 }
@@ -168,32 +167,15 @@ final class AppViewModel: ObservableObject {
         lastMIDIValues = nextMIDI
     }
 
-    /// Fire a 0 → 127 → 0 sweep on the given CC/channel over ~1 second.
-    /// Use to trigger MIDI-learn in the target application without touching the video source.
-    func sweep(channel: Int, cc: Int) {
-        sweepTimer?.cancel()
-        let total = 40
-        var i = 0
-        let t = DispatchSource.makeTimerSource(queue: .main)
-        t.schedule(deadline: .now(), repeating: .milliseconds(25))
-        t.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            let phase = Double(i) / Double(total)
-            let v: Int
-            if phase <= 0.5 {
-                v = Int(round(phase * 2 * 127))
-            } else {
-                v = Int(round((1 - (phase - 0.5) * 2) * 127))
-            }
-            self.midi.sendCC(channel: channel, cc: cc, value: v)
-            i += 1
-            if i > total {
-                self.sweepTimer?.cancel()
-                self.sweepTimer = nil
-                self.midi.sendCC(channel: channel, cc: cc, value: 0)
-            }
+    /// Send a brief +1 (or -1 at edge) and then the original value on the given CC/channel.
+    /// Bypasses the pause flag — used to trigger MIDI-learn in the target app without
+    /// waiting for the video to change. If nothing has been sent yet, starts from 0.
+    func nudge(assignment: CCAssignment) {
+        let current = Int(lastSent[assignment.id] ?? lastMIDIValues[assignment.id] ?? 0)
+        let bumped = current < 127 ? current + 1 : current - 1
+        midi.sendCC(channel: assignment.channel, cc: assignment.cc, value: bumped)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(60)) { [weak self] in
+            self?.midi.sendCC(channel: assignment.channel, cc: assignment.cc, value: current)
         }
-        t.resume()
-        sweepTimer = t
     }
 }
