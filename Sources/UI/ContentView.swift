@@ -9,11 +9,27 @@ struct ContentView: View {
             InspectorView(viewModel: viewModel)
                 .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 520)
         } detail: {
-            PreviewView(
-                pointStore: viewModel.pointStore,
-                texture: viewModel.syphon.currentTexture,
-                lastSampled: viewModel.lastSampled
-            )
+            ZStack(alignment: .top) {
+                PreviewView(
+                    pointStore: viewModel.pointStore,
+                    texture: viewModel.syphon.currentTexture,
+                    lastSampled: viewModel.lastSampled
+                )
+                if viewModel.isFrozen {
+                    HStack(spacing: 8) {
+                        Image(systemName: "pause.circle.fill")
+                        Text("MIDI output paused")
+                            .font(.callout).bold()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(.orange.opacity(0.9), in: Capsule())
+                    .foregroundStyle(.white)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.18), value: viewModel.isFrozen)
             .frame(minWidth: 420, minHeight: 320)
             .toolbar {
                 toolbarContent
@@ -29,22 +45,23 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            SyphonMenu(viewModel: viewModel)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            MIDIMenu(viewModel: viewModel)
-        }
         ToolbarItem(placement: .primaryAction) {
             RateControl(viewModel: viewModel)
         }
         ToolbarItem(placement: .primaryAction) {
-            Toggle(isOn: $viewModel.isFrozen) {
-                Label(viewModel.isFrozen ? "Frozen" : "Live",
-                      systemImage: viewModel.isFrozen ? "pause.circle.fill" : "waveform")
+            Button {
+                viewModel.isFrozen.toggle()
+            } label: {
+                if viewModel.isFrozen {
+                    Label("Resume Output", systemImage: "play.fill")
+                        .foregroundStyle(.orange)
+                } else {
+                    Label("Pause Output", systemImage: "pause.fill")
+                }
             }
-            .toggleStyle(.button)
-            .help("Stop sending CC output while setting up the target app")
+            .help(viewModel.isFrozen
+                  ? "MIDI output is paused — click to resume sending CC messages"
+                  : "Pause MIDI output (sampling keeps running). Useful while setting up the target app.")
         }
         ToolbarItem(placement: .primaryAction) {
             Button {
@@ -61,76 +78,6 @@ struct ContentView: View {
         let midi = viewModel.midi.selected?.name ?? "No MIDI destination"
         let n = viewModel.pointStore.points.count
         return "\(syph) · \(midi) · \(n) point\(n == 1 ? "" : "s")"
-    }
-}
-
-private struct SyphonMenu: View {
-    @ObservedObject var viewModel: AppViewModel
-
-    var body: some View {
-        Menu {
-            Button("Refresh") { viewModel.refreshEndpoints() }
-            Divider()
-            if viewModel.syphon.servers.isEmpty {
-                Text("No Syphon sources available")
-            } else {
-                ForEach(viewModel.syphon.servers) { s in
-                    Button {
-                        viewModel.syphon.connect(to: s)
-                    } label: {
-                        if viewModel.syphon.selected?.id == s.id {
-                            Label("\(s.appName) — \(s.name)", systemImage: "checkmark")
-                        } else {
-                            Text("\(s.appName) — \(s.name)")
-                        }
-                    }
-                }
-            }
-        } label: {
-            Label(label, systemImage: "video.fill")
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .help("Select Syphon source")
-    }
-
-    private var label: String {
-        viewModel.syphon.selected.map { "\($0.appName) — \($0.name)" } ?? "Syphon"
-    }
-}
-
-private struct MIDIMenu: View {
-    @ObservedObject var viewModel: AppViewModel
-
-    var body: some View {
-        Menu {
-            Button("Refresh") { viewModel.refreshEndpoints() }
-            Divider()
-            if viewModel.midi.destinations.isEmpty {
-                Text("No MIDI destinations available")
-            } else {
-                ForEach(viewModel.midi.destinations) { d in
-                    Button {
-                        viewModel.selectMIDI(d)
-                    } label: {
-                        if viewModel.midi.selected?.id == d.id {
-                            Label(d.name, systemImage: "checkmark")
-                        } else {
-                            Text(d.name)
-                        }
-                    }
-                }
-            }
-        } label: {
-            Label(label, systemImage: "pianokeys")
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .help("Select MIDI destination")
-    }
-
-    private var label: String {
-        viewModel.midi.selected?.name ?? "MIDI"
     }
 }
 

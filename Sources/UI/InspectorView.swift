@@ -11,6 +11,11 @@ struct InspectorView: View {
 
     var body: some View {
         List {
+            Section("Connections") {
+                ConnectionsRow(viewModel: viewModel)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+            }
+
             Section {
                 if pointStore.points.isEmpty {
                     VStack(spacing: 8) {
