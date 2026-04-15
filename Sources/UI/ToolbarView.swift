@@ -36,7 +36,7 @@ struct ToolbarView: View {
             Slider(value: Binding(
                 get: { Double(viewModel.sendRateHz) },
                 set: { viewModel.sendRateHz = Int($0) }
-            ), in: 5...60, step: 1)
+            ), in: 10...120, step: 1)
             .frame(width: 120)
             Text("\(viewModel.sendRateHz) Hz").font(.system(.body, design: .monospaced)).frame(width: 55)
 

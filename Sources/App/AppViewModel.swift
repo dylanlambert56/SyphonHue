@@ -11,7 +11,7 @@ final class AppViewModel: ObservableObject {
     let sampler = FrameSampler()
     private let configStore = ConfigStore(fileURL: ConfigStore.defaultURL())
 
-    @Published var sendRateHz: Int = 30 { didSet { restartTimer(); persist() } }
+    @Published var sendRateHz: Int = 60 { didSet { restartTimer(); persist() } }
     @Published var lastSampled: [UUID: SampledColor] = [:]
     @Published var lastMIDIValues: [UUID: UInt8] = [:]
     @Published var isFrozen: Bool = false
@@ -158,7 +158,7 @@ final class AppViewModel: ObservableObject {
                 }
                 let midiVal = ColorMapper.toMIDI(value01)
                 nextMIDI[a.id] = midiVal
-                if !isFrozen, lastSent[a.id] != midiVal {
+                if !isFrozen {
                     lastSent[a.id] = midiVal
                     midi.sendCC(channel: a.channel, cc: a.cc, value: Int(midiVal))
                 }
