@@ -34,6 +34,7 @@ targets:
         CFBundleIconFile: AppIcon
         NSHighResolutionCapable: true
         LSMinimumSystemVersion: "13.0"
+        NSHumanReadableCopyright: "© 2026 Dylan Lambert · MIT Licensed · Provided AS-IS, no warranty"
     settings:
       base:
         INFOPLIST_FILE: Sources/Info.plist

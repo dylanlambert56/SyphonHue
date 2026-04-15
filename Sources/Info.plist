@@ -24,5 +24,7 @@
 	<string>13.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Dylan Lambert · MIT Licensed · Provided AS-IS, no warranty</string>
 </dict>
 </plist>

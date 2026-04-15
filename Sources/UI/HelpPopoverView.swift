@@ -46,15 +46,27 @@ struct HelpSheet: View {
                     }
 
                     section(title: "Troubleshooting") {
-                        Text("• If no Syphon server appears, click Refresh in the menu and confirm Syphon output is enabled in the source app.")
+                        Text("• If no Syphon server appears, click Refresh next to Video source and confirm Syphon output is enabled in the source app.")
                         Text("• If the target isn't receiving anything, confirm the IAC bus is online and selected as input on both sides.")
                         Text("• Output feels stepped even with smoothing on — raise the target's own transition / crossfade time so it interpolates between CC updates.")
+                    }
+
+                    section(title: "License & notices") {
+                        Text("SyphonHue is released under the MIT License. © 2026 Dylan Lambert.")
+                        Text("The software is provided AS-IS, without warranty of any kind. There is no support, no maintenance commitment, and no guarantee of fitness for any purpose. Use at your own risk.")
+                        Text("Bundles the Syphon Framework (Tom Butterworth, Anton Marini, Maxime Touroute, Philippe Chaurand) under a 2-clause BSD license.")
+                        Button("View full license") {
+                            if let url = Bundle.main.url(forResource: "LICENSE", withExtension: nil) {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.link)
                     }
                 }
                 .padding()
             }
         }
-        .frame(width: 560, height: 640)
+        .frame(width: 560, height: 720)
     }
 
     @ViewBuilder

@@ -8,5 +8,12 @@ struct SyphonHueApp: App {
         }
         .windowStyle(.titleBar)
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About SyphonHue") {
+                    AboutPanel.show()
+                }
+            }
+        }
     }
 }
