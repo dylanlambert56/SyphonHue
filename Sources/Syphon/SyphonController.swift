@@ -20,6 +20,7 @@ final class SyphonController: ObservableObject {
     private let directory = SyphonServerDirectory.shared()
     private var client: SyphonMetalClient?
     private var observers: [NSObjectProtocol] = []
+    private var frameCount: Int = 0
 
     init() {
         refreshServers()
@@ -59,17 +60,29 @@ final class SyphonController: ObservableObject {
     func connect(to info: SyphonServerInfo) {
         disconnect()
         selected = info
+        frameCount = 0
+        NSLog("SyphonHue: connecting to \(info.appName) — \(info.name)")
         let device = MetalContext.shared.device
         client = SyphonMetalClient(serverDescription: info.description,
                                    device: device,
                                    options: nil,
                                    newFrameHandler: { [weak self] c in
             guard let self = self else { return }
-            let tex = c.newFrameImage()
+            guard let tex = c.newFrameImage() else {
+                NSLog("SyphonHue: newFrameImage returned nil")
+                return
+            }
+            self.frameCount += 1
+            if self.frameCount == 1 || self.frameCount % 120 == 0 {
+                NSLog("SyphonHue: frame \(self.frameCount) \(tex.width)x\(tex.height) fmt=\(tex.pixelFormat.rawValue)")
+            }
             DispatchQueue.main.async {
                 self.currentTexture = tex
             }
         })
+        if client == nil {
+            NSLog("SyphonHue: SyphonMetalClient init returned nil")
+        }
     }
 
     func disconnect() {

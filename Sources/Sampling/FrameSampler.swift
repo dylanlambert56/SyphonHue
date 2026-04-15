@@ -21,7 +21,7 @@ final class FrameSampler {
 
         return points.map { p in
             let cx = Int((p.x * CGFloat(w)).rounded())
-            let cy = Int((p.y * CGFloat(h)).rounded())
+            let cy = Int(((1.0 - p.y) * CGFloat(h)).rounded())
             let x0 = max(0, min(w - tile, cx - tile / 2))
             let y0 = max(0, min(h - tile, cy - tile / 2))
             let region = MTLRegionMake2D(x0, y0, tile, tile)

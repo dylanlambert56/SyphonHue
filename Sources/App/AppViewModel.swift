@@ -17,6 +17,7 @@ final class AppViewModel: ObservableObject {
     private var timer: DispatchSourceTimer?
     private var lastSent: [UUID: UInt8] = [:]
     private var cancellables = Set<AnyCancellable>()
+    private var pendingSyphonTag: String?
 
     init() {
         loadConfig()
@@ -27,8 +28,28 @@ final class AppViewModel: ObservableObject {
             .store(in: &cancellables)
         syphon.$selected
             .dropFirst()
-            .sink { [weak self] _ in self?.persist() }
+            .sink { [weak self] sel in
+                guard let self = self else { return }
+                if let s = sel {
+                    self.pendingSyphonTag = "\(s.appName)::\(s.name)"
+                } else if self.pendingSyphonTag == nil {
+                    // user hasn't chosen anything yet, nothing to remember
+                }
+                self.persist()
+            }
             .store(in: &cancellables)
+        syphon.$servers
+            .sink { [weak self] _ in self?.tryResumePendingSyphon() }
+            .store(in: &cancellables)
+    }
+
+    private func tryResumePendingSyphon() {
+        guard let tag = pendingSyphonTag else { return }
+        let parts = tag.components(separatedBy: "::")
+        guard parts.count == 2 else { pendingSyphonTag = nil; return }
+        if syphon.selectByName(app: parts[0], name: parts[1]) {
+            pendingSyphonTag = nil
+        }
     }
 
     func refreshEndpoints() {
@@ -48,22 +69,37 @@ final class AppViewModel: ObservableObject {
         pointStore.points = cfg.points
         sendRateHz = cfg.sendRateHz
         if let sname = cfg.syphonServer {
-            let parts = sname.components(separatedBy: "::")
-            if parts.count == 2 { _ = syphon.selectByName(app: parts[0], name: parts[1]) }
+            pendingSyphonTag = sname
         }
+        syphon.refreshServers()
+        midi.refreshDestinations()
+        tryResumePendingSyphon()
         if let mname = cfg.midiDestination {
             _ = midi.selectByName(mname)
+        }
+        pollDiscoveryOnStartup()
+    }
+
+    private func pollDiscoveryOnStartup() {
+        let tries = [0.2, 0.5, 1.0, 2.0, 4.0]
+        for delay in tries {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self else { return }
+                self.syphon.refreshServers()
+                self.midi.refreshDestinations()
+                self.tryResumePendingSyphon()
+                if self.midi.selected == nil, let cfg = try? self.configStore.load(),
+                   let mname = cfg.midiDestination {
+                    _ = self.midi.selectByName(mname)
+                }
+            }
         }
     }
 
     private func persist() {
-        let serverTag: String? = {
-            guard let s = syphon.selected else { return nil }
-            return "\(s.appName)::\(s.name)"
-        }()
         let cfg = AppConfig(
             points: pointStore.points,
-            syphonServer: serverTag,
+            syphonServer: pendingSyphonTag,
             midiDestination: midi.selected?.name,
             sendRateHz: sendRateHz
         )

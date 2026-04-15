@@ -10,20 +10,40 @@ struct PreviewView: View {
         GeometryReader { geo in
             ZStack {
                 Color.black
-                MetalTextureView(texture: texture)
-                ForEach(pointStore.points.indices, id: \.self) { idx in
-                    let point = pointStore.points[idx]
-                    PointMarker(
-                        index: idx + 1,
-                        color: uiColor(for: point.id),
-                        normalizedPosition: point.position,
-                        viewSize: geo.size,
-                        onDrag: { newPos in
-                            pointStore.move(id: point.id, to: newPos)
-                        }
-                    )
+                let fitted = fittedSize(for: geo.size)
+                ZStack {
+                    MetalTextureView(texture: texture)
+                    ForEach(pointStore.points.indices, id: \.self) { idx in
+                        let point = pointStore.points[idx]
+                        PointMarker(
+                            index: idx + 1,
+                            color: uiColor(for: point.id),
+                            normalizedPosition: point.position,
+                            viewSize: fitted,
+                            onDrag: { newPos in
+                                pointStore.move(id: point.id, to: newPos)
+                            }
+                        )
+                    }
                 }
+                .frame(width: fitted.width, height: fitted.height)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+
+    private func fittedSize(for container: CGSize) -> CGSize {
+        let aspect: CGFloat = {
+            if let t = texture, t.width > 0, t.height > 0 {
+                return CGFloat(t.width) / CGFloat(t.height)
+            }
+            return 16.0 / 9.0
+        }()
+        let containerAspect = container.width / max(container.height, 1)
+        if containerAspect > aspect {
+            return CGSize(width: container.height * aspect, height: container.height)
+        } else {
+            return CGSize(width: container.width, height: container.width / aspect)
         }
     }
 
@@ -64,12 +84,17 @@ struct MetalTextureView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> MTKView {
         let v = MTKView(frame: .zero, device: MetalContext.shared.device)
-        v.framebufferOnly = false
+        v.framebufferOnly = true
         v.enableSetNeedsDisplay = false
         v.isPaused = false
         v.colorPixelFormat = .bgra8Unorm
+        v.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
         v.delegate = context.coordinator
-        context.coordinator.commandQueue = MetalContext.shared.commandQueue
+        context.coordinator.configure(
+            device: MetalContext.shared.device,
+            commandQueue: MetalContext.shared.commandQueue,
+            colorPixelFormat: v.colorPixelFormat
+        )
         return v
     }
 
@@ -79,7 +104,31 @@ struct MetalTextureView: NSViewRepresentable {
 
     final class Coordinator: NSObject, MTKViewDelegate {
         var texture: MTLTexture?
-        var commandQueue: MTLCommandQueue?
+        private var device: MTLDevice?
+        private var commandQueue: MTLCommandQueue?
+        private var pipeline: MTLRenderPipelineState?
+
+        func configure(device: MTLDevice,
+                       commandQueue: MTLCommandQueue,
+                       colorPixelFormat: MTLPixelFormat) {
+            self.device = device
+            self.commandQueue = commandQueue
+            guard let library = try? device.makeDefaultLibrary(bundle: Bundle.main),
+                  let vfn = library.makeFunction(name: "preview_vs"),
+                  let ffn = library.makeFunction(name: "preview_fs") else {
+                NSLog("SyphonHue: failed to load preview Metal library")
+                return
+            }
+            let desc = MTLRenderPipelineDescriptor()
+            desc.vertexFunction = vfn
+            desc.fragmentFunction = ffn
+            desc.colorAttachments[0].pixelFormat = colorPixelFormat
+            do {
+                pipeline = try device.makeRenderPipelineState(descriptor: desc)
+            } catch {
+                NSLog("SyphonHue: pipeline build failed: \(error)")
+            }
+        }
 
         func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
@@ -89,22 +138,19 @@ struct MetalTextureView: NSViewRepresentable {
                   let cmd = cq.makeCommandBuffer() else {
                 return
             }
-            let dst = drawable.texture
-            if let src = texture,
-               let blit = cmd.makeBlitCommandEncoder() {
-                let minW = min(src.width, dst.width)
-                let minH = min(src.height, dst.height)
-                if minW > 0 && minH > 0 {
-                    blit.copy(from: src,
-                              sourceSlice: 0, sourceLevel: 0,
-                              sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-                              sourceSize: MTLSize(width: minW, height: minH, depth: 1),
-                              to: dst,
-                              destinationSlice: 0, destinationLevel: 0,
-                              destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-                }
-                blit.endEncoding()
+
+            if let src = texture, let pipe = pipeline,
+               let rpd = view.currentRenderPassDescriptor,
+               let enc = cmd.makeRenderCommandEncoder(descriptor: rpd) {
+                enc.setRenderPipelineState(pipe)
+                enc.setFragmentTexture(src, index: 0)
+                enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+                enc.endEncoding()
+            } else if let rpd = view.currentRenderPassDescriptor,
+                      let enc = cmd.makeRenderCommandEncoder(descriptor: rpd) {
+                enc.endEncoding()
             }
+
             cmd.present(drawable)
             cmd.commit()
         }
