@@ -185,7 +185,7 @@ private enum AssignmentColumns {
     static let cc: CGFloat = 64
     static let channel: CGFloat = 52
     static let value: CGFloat = 40
-    static let learn: CGFloat = 24
+    static let learn: CGFloat = 40
     static let spacing: CGFloat = 8
 }
 
@@ -198,7 +198,7 @@ private struct AssignmentColumnHeader: View {
             Text("Ch").frame(width: AssignmentColumns.channel, alignment: .leading)
             Spacer(minLength: 0)
             Text("Value").frame(width: AssignmentColumns.value, alignment: .trailing)
-            Color.clear.frame(width: AssignmentColumns.learn, height: 1)
+            Text("Nudge").frame(width: AssignmentColumns.learn, alignment: .center)
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
