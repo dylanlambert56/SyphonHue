@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ToolbarView: View {
     @ObservedObject var viewModel: AppViewModel
+    @State private var showHelp = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -40,6 +41,23 @@ struct ToolbarView: View {
             Text("\(viewModel.sendRateHz) Hz").font(.system(.body, design: .monospaced)).frame(width: 55)
 
             Spacer()
+
+            Toggle(isOn: $viewModel.isFrozen) {
+                Label(viewModel.isFrozen ? "Frozen" : "Live", systemImage: viewModel.isFrozen ? "snowflake" : "dot.radiowaves.left.and.right")
+            }
+            .toggleStyle(.button)
+            .help("Freeze stops all CC output — useful while setting cues in LightKey")
+
+            Button {
+                showHelp = true
+            } label: {
+                Image(systemName: "questionmark.circle")
+            }
+            .buttonStyle(.borderless)
+            .help("Connection instructions")
+            .popover(isPresented: $showHelp, arrowEdge: .top) {
+                HelpPopoverView()
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

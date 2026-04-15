@@ -13,11 +13,15 @@ final class AppViewModel: ObservableObject {
 
     @Published var sendRateHz: Int = 30 { didSet { restartTimer(); persist() } }
     @Published var lastSampled: [UUID: SampledColor] = [:]
+    @Published var lastMIDIValues: [UUID: UInt8] = [:]
+    @Published var isFrozen: Bool = false
 
     private var timer: DispatchSourceTimer?
     private var lastSent: [UUID: UInt8] = [:]
+    private var smoothed: [UUID: SampledColor] = [:]
     private var cancellables = Set<AnyCancellable>()
     private var pendingSyphonTag: String?
+    private var sweepTimer: DispatchSourceTimer?
 
     init() {
         loadConfig()
@@ -125,27 +129,71 @@ final class AppViewModel: ObservableObject {
         guard samples.count == points.count else { return }
 
         var nextSampled: [UUID: SampledColor] = [:]
+        var nextMIDI: [UUID: UInt8] = lastMIDIValues
         for (i, point) in points.enumerated() {
-            let rgb = samples[i]
-            nextSampled[point.id] = rgb
-            let hsb = ColorMapper.rgbToHSB(r: rgb.r, g: rgb.g, b: rgb.b)
+            let raw = samples[i]
+            let alpha = point.smoothing
+            let prev = smoothed[point.id] ?? raw
+            let blended = SampledColor(
+                r: prev.r * alpha + raw.r * (1 - alpha),
+                g: prev.g * alpha + raw.g * (1 - alpha),
+                b: prev.b * alpha + raw.b * (1 - alpha)
+            )
+            smoothed[point.id] = blended
+            nextSampled[point.id] = blended
+            let hsb = ColorMapper.rgbToHSB(r: blended.r, g: blended.g, b: blended.b)
             for a in point.assignments where a.enabled {
                 let value01: Double
                 switch a.source {
-                case .hue: value01 = hsb.h
+                case .hue:
+                    if hsb.s < point.hueGateSaturation {
+                        continue
+                    }
+                    value01 = hsb.h
                 case .saturation: value01 = hsb.s
                 case .brightness: value01 = hsb.b
-                case .red: value01 = rgb.r
-                case .green: value01 = rgb.g
-                case .blue: value01 = rgb.b
+                case .red: value01 = blended.r
+                case .green: value01 = blended.g
+                case .blue: value01 = blended.b
                 }
                 let midiVal = ColorMapper.toMIDI(value01)
-                if lastSent[a.id] != midiVal {
+                nextMIDI[a.id] = midiVal
+                if !isFrozen, lastSent[a.id] != midiVal {
                     lastSent[a.id] = midiVal
                     midi.sendCC(channel: a.channel, cc: a.cc, value: Int(midiVal))
                 }
             }
         }
         lastSampled = nextSampled
+        lastMIDIValues = nextMIDI
+    }
+
+    /// Fire a 0 → 127 → 0 sweep on the given CC/channel over ~1 second.
+    /// Use to MIDI-learn in LightKey without touching the video source.
+    func sweep(channel: Int, cc: Int) {
+        sweepTimer?.cancel()
+        let total = 40
+        var i = 0
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now(), repeating: .milliseconds(25))
+        t.setEventHandler { [weak self] in
+            guard let self = self else { return }
+            let phase = Double(i) / Double(total)
+            let v: Int
+            if phase <= 0.5 {
+                v = Int(round(phase * 2 * 127))
+            } else {
+                v = Int(round((1 - (phase - 0.5) * 2) * 127))
+            }
+            self.midi.sendCC(channel: channel, cc: cc, value: v)
+            i += 1
+            if i > total {
+                self.sweepTimer?.cancel()
+                self.sweepTimer = nil
+                self.midi.sendCC(channel: channel, cc: cc, value: 0)
+            }
+        }
+        t.resume()
+        sweepTimer = t
     }
 }

@@ -4,7 +4,9 @@ struct PointRowView: View {
     let index: Int
     @Binding var point: SamplePoint
     var lastSampled: SampledColor?
+    var midiValues: [UUID: UInt8]
     var onRemove: () -> Void
+    var onSweep: (CCAssignment) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -20,7 +22,7 @@ struct PointRowView: View {
                 Button(action: onRemove) { Image(systemName: "trash") }
                     .buttonStyle(.borderless)
             }
-            HStack {
+            HStack(spacing: 10) {
                 Text(String(format: "x %.2f", point.position.x))
                 Text(String(format: "y %.2f", point.position.y))
                 if let s = lastSampled {
@@ -29,8 +31,30 @@ struct PointRowView: View {
                         .foregroundColor(.secondary)
                 }
             }.font(.caption)
+
+            HStack(spacing: 6) {
+                Text("Smooth").frame(width: 50, alignment: .leading)
+                Slider(value: $point.smoothing, in: 0...0.95)
+                Text(String(format: "%.2f", point.smoothing))
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(width: 36, alignment: .trailing)
+            }.font(.caption)
+
+            HStack(spacing: 6) {
+                Text("Sat gate").frame(width: 50, alignment: .leading)
+                Slider(value: $point.hueGateSaturation, in: 0...1)
+                Text(String(format: "%.2f", point.hueGateSaturation))
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(width: 36, alignment: .trailing)
+            }.font(.caption)
+            .help("When saturation is below this value, hue is held — prevents random hue flicker on grey regions.")
+
             ForEach($point.assignments) { $a in
-                AssignmentRow(assignment: $a)
+                AssignmentRow(
+                    assignment: $a,
+                    currentMIDI: midiValues[a.id],
+                    onSweep: { onSweep(a) }
+                )
             }
         }
         .padding(8)
@@ -40,6 +64,8 @@ struct PointRowView: View {
 
 private struct AssignmentRow: View {
     @Binding var assignment: CCAssignment
+    var currentMIDI: UInt8?
+    var onSweep: () -> Void
 
     var body: some View {
         HStack(spacing: 6) {
@@ -49,16 +75,34 @@ private struct AssignmentRow: View {
                     Text(cv.label).tag(cv)
                 }
             }.labelsHidden().frame(width: 80)
+
             Text("CC")
-            Stepper(value: $assignment.cc, in: 0...127) {
-                Text("\(assignment.cc)").frame(width: 32, alignment: .trailing)
-                    .font(.system(.body, design: .monospaced))
-            }.labelsHidden()
+            Text("\(assignment.cc)")
+                .font(.system(.body, design: .monospaced))
+                .frame(width: 30, alignment: .trailing)
+            Stepper("", value: $assignment.cc, in: 0...127)
+                .labelsHidden()
+
             Text("Ch")
-            Stepper(value: $assignment.channel, in: 1...16) {
-                Text("\(assignment.channel)").frame(width: 24, alignment: .trailing)
-                    .font(.system(.body, design: .monospaced))
-            }.labelsHidden()
+            Text("\(assignment.channel)")
+                .font(.system(.body, design: .monospaced))
+                .frame(width: 22, alignment: .trailing)
+            Stepper("", value: $assignment.channel, in: 1...16)
+                .labelsHidden()
+
+            Spacer(minLength: 4)
+
+            Text(currentMIDI.map { String(format: "%3d", $0) } ?? "—")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundColor(.secondary)
+                .frame(width: 28, alignment: .trailing)
+                .help("Current CC value being sent")
+
+            Button(action: onSweep) {
+                Image(systemName: "waveform.path")
+            }
+            .buttonStyle(.borderless)
+            .help("Sweep 0→127→0 on this CC — use to MIDI-learn in LightKey")
         }
         .font(.caption)
     }

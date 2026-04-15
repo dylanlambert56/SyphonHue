@@ -17,9 +17,11 @@ struct ContentView: View {
 
                 SidebarView(
                     pointStore: viewModel.pointStore,
-                    lastSampled: viewModel.lastSampled
+                    lastSampled: viewModel.lastSampled,
+                    midiValues: viewModel.lastMIDIValues,
+                    onSweep: { a in viewModel.sweep(channel: a.channel, cc: a.cc) }
                 )
-                .frame(minWidth: 360, idealWidth: 400)
+                .frame(minWidth: 380, idealWidth: 440)
             }
             Divider()
             HStack {

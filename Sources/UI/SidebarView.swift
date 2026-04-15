@@ -3,6 +3,8 @@ import SwiftUI
 struct SidebarView: View {
     @ObservedObject var pointStore: PointStore
     var lastSampled: [UUID: SampledColor]
+    var midiValues: [UUID: UInt8]
+    var onSweep: (CCAssignment) -> Void
 
     var body: some View {
         ScrollView {
@@ -28,7 +30,9 @@ struct SidebarView: View {
                         index: idx + 1,
                         point: $pointStore.points[idx],
                         lastSampled: lastSampled[pointStore.points[idx].id],
-                        onRemove: { pointStore.remove(id: pointStore.points[idx].id) }
+                        midiValues: midiValues,
+                        onRemove: { pointStore.remove(id: pointStore.points[idx].id) },
+                        onSweep: onSweep
                     )
                 }
             }
