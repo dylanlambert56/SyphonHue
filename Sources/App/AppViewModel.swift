@@ -158,8 +158,10 @@ final class AppViewModel: ObservableObject {
                 let midiVal = ColorMapper.toMIDI(value01)
                 if !isFrozen {
                     nextMIDI[a.id] = midiVal
-                    lastSent[a.id] = midiVal
-                    midi.sendCC(channel: a.channel, cc: a.cc, value: Int(midiVal))
+                    if lastSent[a.id] != midiVal {
+                        lastSent[a.id] = midiVal
+                        midi.sendCC(channel: a.channel, cc: a.cc, value: Int(midiVal))
+                    }
                 }
             }
         }

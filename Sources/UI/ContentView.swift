@@ -7,7 +7,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             InspectorView(viewModel: viewModel)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 520)
+                .navigationSplitViewColumnWidth(min: 400, ideal: 440, max: 560)
         } detail: {
             ZStack(alignment: .top) {
                 PreviewView(

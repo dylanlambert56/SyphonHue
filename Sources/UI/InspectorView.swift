@@ -123,7 +123,20 @@ private struct PointRow: View {
                 }
 
                 GroupBox {
-                    VStack(spacing: 6) {
+                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
+                        GridRow {
+                            headerCell("On", align: .center)
+                            headerCell("Source")
+                            headerCell("CC")
+                            headerCell("Ch")
+                            headerCell("Value", align: .trailing).gridColumnAlignment(.trailing)
+                            headerCell("", align: .center)
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                        Divider().gridCellColumns(6)
+
                         ForEach($point.assignments) { $a in
                             AssignmentRow(
                                 assignment: $a,
@@ -132,12 +145,18 @@ private struct PointRow: View {
                                 onNudge: { onNudge(a) }
                             )
                             if a.id != point.assignments.last?.id {
-                                Divider()
+                                Divider().gridCellColumns(6)
                             }
                         }
                     }
                 } label: {
-                    Text("CC Output").font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: "pianokeys")
+                            .foregroundStyle(.secondary)
+                        Text("CC Output")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(.vertical, 6)
@@ -169,6 +188,11 @@ private struct PointRow: View {
     }
 }
 
+private func headerCell(_ text: String, align: Alignment = .leading) -> some View {
+    Text(text)
+        .frame(maxWidth: .infinity, alignment: align)
+}
+
 private struct AssignmentRow: View {
     @Binding var assignment: CCAssignment
     var currentMIDI: UInt8?
@@ -176,11 +200,13 @@ private struct AssignmentRow: View {
     var onNudge: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        GridRow {
             Toggle("", isOn: $assignment.enabled)
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
+                .gridColumnAlignment(.center)
+                .help(assignment.enabled ? "Enabled" : "Disabled")
 
             Picker("", selection: $assignment.source) {
                 ForEach(ColorValue.allCases) { cv in
@@ -189,48 +215,45 @@ private struct AssignmentRow: View {
             }
             .labelsHidden()
             .pickerStyle(.menu)
-            .frame(width: 88)
+            .frame(maxWidth: 96)
 
-            LabeledNumber(label: "CC", value: $assignment.cc, range: 0...127, width: 30)
-            LabeledNumber(label: "Ch", value: $assignment.channel, range: 1...16, width: 22)
+            NumberField(value: $assignment.cc, range: 0...127, width: 28)
 
-            if isDuplicate && assignment.enabled {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.yellow)
-                    .help("This CC/channel is also used by another point — the target will see both values.")
+            NumberField(value: $assignment.channel, range: 1...16, width: 22)
+
+            HStack(spacing: 4) {
+                if isDuplicate && assignment.enabled {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                        .help("This CC/channel is also used by another point — the target will see both values.")
+                }
+                Text(currentMIDI.map { String(format: "%3d", $0) } ?? "—")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(assignment.enabled ? .primary : .secondary)
+                    .monospacedDigit()
             }
-
-            Spacer(minLength: 4)
-
-            Text(currentMIDI.map { String(format: "%3d", $0) } ?? "—")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(assignment.enabled ? .primary : .secondary)
-                .monospacedDigit()
-                .frame(width: 30, alignment: .trailing)
-                .help("Current CC value being sent")
+            .gridColumnAlignment(.trailing)
+            .help("Last CC value the target received")
 
             Button(action: onNudge) {
                 Image(systemName: "bolt.fill")
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help("Nudge this CC (±1) to trigger MIDI-learn in the target app — works while paused")
+            .gridColumnAlignment(.center)
+            .help("Nudge this CC ±1 — triggers MIDI-learn in the target, even while paused")
         }
         .font(.caption)
     }
 }
 
-private struct LabeledNumber: View {
-    let label: String
+private struct NumberField: View {
     @Binding var value: Int
     let range: ClosedRange<Int>
     let width: CGFloat
 
     var body: some View {
-        HStack(spacing: 3) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 2) {
             Text("\(value)")
                 .font(.system(.caption, design: .monospaced))
                 .monospacedDigit()
@@ -241,3 +264,4 @@ private struct LabeledNumber: View {
         }
     }
 }
+
