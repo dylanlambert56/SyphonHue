@@ -7,7 +7,11 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    ENABLE_HARDENED_RUNTIME: NO
+    ENABLE_HARDENED_RUNTIME: YES
+    OTHER_CODE_SIGN_FLAGS: "--timestamp --options runtime"
+  configs:
+    Release:
+      CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
 targets:
   SyphonHue:
     type: application
@@ -17,6 +21,7 @@ targets:
         excludes:
           - SyphonHue-Bridging-Header.h
           - Info.plist
+          - SyphonHue.entitlements
       - path: Resources
     dependencies:
       - framework: Frameworks/Syphon.framework
@@ -32,11 +37,12 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: Sources/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.syphonhue.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.dylanlambert.syphonhue
         PRODUCT_NAME: SyphonHue
-        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_IDENTITY: "Developer ID Application"
         CODE_SIGN_STYLE: Manual
-        DEVELOPMENT_TEAM: ""
+        DEVELOPMENT_TEAM: 7M6Z5Y46DT
+        CODE_SIGN_ENTITLEMENTS: Sources/SyphonHue.entitlements
         FRAMEWORK_SEARCH_PATHS:
           - $(SRCROOT)/Frameworks
         SWIFT_OBJC_BRIDGING_HEADER: Sources/SyphonHue-Bridging-Header.h
