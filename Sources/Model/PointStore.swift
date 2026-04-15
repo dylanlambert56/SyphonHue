@@ -8,12 +8,25 @@ final class PointStore: ObservableObject {
 
     func addPoint() {
         guard points.count < Self.maxPoints else { return }
-        let startingCC = 20 + points.count * 3
+        let usedCCs: Set<Int> = Set(points.flatMap { $0.assignments.map { $0.cc } })
+        let startingCC = nextFreeStartingCC(avoiding: usedCCs)
         let p = SamplePoint(
             position: CGPoint(x: 0.5, y: 0.5),
             assignments: SamplePoint.defaultAssignments(startingCC: startingCC)
         )
         points.append(p)
+    }
+
+    /// Find the smallest `start` (≥ 20) such that `start`, `start+1`, and `start+2`
+    /// are all free and all ≤ 127. Falls back to 20 if nothing fits (user will resolve by editing).
+    private func nextFreeStartingCC(avoiding used: Set<Int>) -> Int {
+        for start in stride(from: 20, through: 125, by: 1) {
+            let triplet = [start, start + 1, start + 2]
+            if triplet.allSatisfy({ $0 <= 127 && !used.contains($0) }) {
+                return start
+            }
+        }
+        return 20
     }
 
     func remove(id: UUID) {

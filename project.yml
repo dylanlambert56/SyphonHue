@@ -17,6 +17,7 @@ targets:
         excludes:
           - SyphonHue-Bridging-Header.h
           - Info.plist
+      - path: Resources
     dependencies:
       - framework: Frameworks/Syphon.framework
         embed: true
@@ -25,6 +26,7 @@ targets:
       path: Sources/Info.plist
       properties:
         CFBundleName: SyphonHue
+        CFBundleIconFile: AppIcon
         NSHighResolutionCapable: true
         LSMinimumSystemVersion: "13.0"
     settings:
