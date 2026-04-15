@@ -123,21 +123,9 @@ private struct PointRow: View {
                 }
 
                 GroupBox {
-                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                        GridRow {
-                            headerCell("On", align: .center)
-                            headerCell("Source")
-                            headerCell("CC")
-                            headerCell("Ch")
-                            Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
-                            headerCell("Value", align: .trailing)
-                            headerCell("", align: .center)
-                        }
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-
-                        Divider().gridCellColumns(7)
-
+                    VStack(alignment: .leading, spacing: 6) {
+                        AssignmentColumnHeader()
+                        Divider()
                         ForEach($point.assignments) { $a in
                             AssignmentRow(
                                 assignment: $a,
@@ -146,11 +134,11 @@ private struct PointRow: View {
                                 onNudge: { onNudge(a) }
                             )
                             if a.id != point.assignments.last?.id {
-                                Divider().gridCellColumns(7)
+                                Divider()
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "pianokeys")
@@ -190,9 +178,31 @@ private struct PointRow: View {
     }
 }
 
-private func headerCell(_ text: String, align: Alignment = .leading) -> some View {
-    Text(text)
-        .frame(maxWidth: .infinity, alignment: align)
+/// Column widths kept in one place so header and rows stay aligned.
+private enum AssignmentColumns {
+    static let on: CGFloat = 30
+    static let source: CGFloat = 90
+    static let cc: CGFloat = 64
+    static let channel: CGFloat = 52
+    static let value: CGFloat = 40
+    static let learn: CGFloat = 24
+    static let spacing: CGFloat = 8
+}
+
+private struct AssignmentColumnHeader: View {
+    var body: some View {
+        HStack(spacing: AssignmentColumns.spacing) {
+            Text("On").frame(width: AssignmentColumns.on, alignment: .center)
+            Text("Source").frame(width: AssignmentColumns.source, alignment: .leading)
+            Text("CC").frame(width: AssignmentColumns.cc, alignment: .leading)
+            Text("Ch").frame(width: AssignmentColumns.channel, alignment: .leading)
+            Spacer(minLength: 0)
+            Text("Value").frame(width: AssignmentColumns.value, alignment: .trailing)
+            Color.clear.frame(width: AssignmentColumns.learn, height: 1)
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
 }
 
 private struct AssignmentRow: View {
@@ -202,13 +212,12 @@ private struct AssignmentRow: View {
     var onNudge: () -> Void
 
     var body: some View {
-        GridRow {
+        HStack(spacing: AssignmentColumns.spacing) {
             Toggle("", isOn: $assignment.enabled)
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
-                .gridColumnAlignment(.center)
-                .help(assignment.enabled ? "Enabled" : "Disabled")
+                .frame(width: AssignmentColumns.on, alignment: .center)
 
             Picker("", selection: $assignment.source) {
                 ForEach(ColorValue.allCases) { cv in
@@ -217,13 +226,15 @@ private struct AssignmentRow: View {
             }
             .labelsHidden()
             .pickerStyle(.menu)
-            .frame(maxWidth: 96)
+            .frame(width: AssignmentColumns.source, alignment: .leading)
 
             NumberField(value: $assignment.cc, range: 0...127, width: 28)
+                .frame(width: AssignmentColumns.cc, alignment: .leading)
 
             NumberField(value: $assignment.channel, range: 1...16, width: 22)
+                .frame(width: AssignmentColumns.channel, alignment: .leading)
 
-            Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
+            Spacer(minLength: 0)
 
             HStack(spacing: 4) {
                 if isDuplicate && assignment.enabled {
@@ -236,7 +247,7 @@ private struct AssignmentRow: View {
                     .foregroundStyle(assignment.enabled ? .primary : .secondary)
                     .monospacedDigit()
             }
-            .gridColumnAlignment(.trailing)
+            .frame(width: AssignmentColumns.value, alignment: .trailing)
             .help("Last CC value the target received")
 
             Button(action: onNudge) {
@@ -244,7 +255,7 @@ private struct AssignmentRow: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .gridColumnAlignment(.center)
+            .frame(width: AssignmentColumns.learn, alignment: .center)
             .help("Nudge this CC ±1 — triggers MIDI-learn in the target, even while paused")
         }
         .font(.caption)
