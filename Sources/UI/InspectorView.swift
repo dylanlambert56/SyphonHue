@@ -129,13 +129,14 @@ private struct PointRow: View {
                             headerCell("Source")
                             headerCell("CC")
                             headerCell("Ch")
-                            headerCell("Value", align: .trailing).gridColumnAlignment(.trailing)
+                            Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
+                            headerCell("Value", align: .trailing)
                             headerCell("", align: .center)
                         }
                         .font(.caption2)
                         .foregroundStyle(.secondary)
 
-                        Divider().gridCellColumns(6)
+                        Divider().gridCellColumns(7)
 
                         ForEach($point.assignments) { $a in
                             AssignmentRow(
@@ -145,10 +146,11 @@ private struct PointRow: View {
                                 onNudge: { onNudge(a) }
                             )
                             if a.id != point.assignments.last?.id {
-                                Divider().gridCellColumns(6)
+                                Divider().gridCellColumns(7)
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity)
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "pianokeys")
@@ -220,6 +222,8 @@ private struct AssignmentRow: View {
             NumberField(value: $assignment.cc, range: 0...127, width: 28)
 
             NumberField(value: $assignment.channel, range: 1...16, width: 22)
+
+            Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
 
             HStack(spacing: 4) {
                 if isDuplicate && assignment.enabled {
