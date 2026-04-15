@@ -2,6 +2,8 @@
 
 macOS app that takes a Syphon video feed, samples colors from points you drop on the preview, and streams those values as MIDI CC messages to any CoreMIDI-aware application — lighting controllers, DAWs, VJ tools, synths, etc.
 
+![SyphonHue](docs/screenshot.png)
+
 ## Build
 
 ```
