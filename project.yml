@@ -1,0 +1,69 @@
+name: SyphonHue
+options:
+  bundleIdPrefix: com.syphonhue
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    ENABLE_HARDENED_RUNTIME: YES
+targets:
+  SyphonHue:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+        excludes:
+          - SyphonHue-Bridging-Header.h
+          - Info.plist
+    dependencies:
+      - framework: Frameworks/Syphon.framework
+        embed: true
+        codeSign: true
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleName: SyphonHue
+        NSHighResolutionCapable: true
+        LSMinimumSystemVersion: "13.0"
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.syphonhue.app
+        PRODUCT_NAME: SyphonHue
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: ""
+        FRAMEWORK_SEARCH_PATHS:
+          - $(SRCROOT)/Frameworks
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/SyphonHue-Bridging-Header.h
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../Frameworks"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        ENABLE_APP_SANDBOX: NO
+  SyphonHueTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: SyphonHue
+    settings:
+      base:
+        BUNDLE_LOADER: $(TEST_HOST)
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/SyphonHue.app/Contents/MacOS/SyphonHue
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+schemes:
+  SyphonHue:
+    build:
+      targets:
+        SyphonHue: all
+        SyphonHueTests: [test]
+    test:
+      targets:
+        - SyphonHueTests
+    run:
+      config: Debug
+    archive:
+      config: Release
