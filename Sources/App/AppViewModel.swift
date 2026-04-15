@@ -169,7 +169,7 @@ final class AppViewModel: ObservableObject {
     }
 
     /// Fire a 0 → 127 → 0 sweep on the given CC/channel over ~1 second.
-    /// Use to MIDI-learn in LightKey without touching the video source.
+    /// Use to trigger MIDI-learn in the target application without touching the video source.
     func sweep(channel: Int, cc: Int) {
         sweepTimer?.cancel()
         let total = 40

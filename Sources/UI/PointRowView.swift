@@ -102,7 +102,7 @@ private struct AssignmentRow: View {
                 Image(systemName: "waveform.path")
             }
             .buttonStyle(.borderless)
-            .help("Sweep 0→127→0 on this CC — use to MIDI-learn in LightKey")
+            .help("Sweep 0→127→0 on this CC — use to trigger MIDI-learn in the target app")
         }
         .font(.caption)
     }

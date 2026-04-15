@@ -46,7 +46,7 @@ struct ToolbarView: View {
                 Label(viewModel.isFrozen ? "Frozen" : "Live", systemImage: viewModel.isFrozen ? "snowflake" : "dot.radiowaves.left.and.right")
             }
             .toggleStyle(.button)
-            .help("Freeze stops all CC output — useful while setting cues in LightKey")
+            .help("Freeze stops all CC output — useful while setting up the target app")
 
             Button {
                 showHelp = true
